@@ -14,7 +14,7 @@ class pd_loaddata:
         self.num2 = num2
 
     
-    def pd_sep001(path):
+    def pd_csv(path):
         """
         load data with \001 type seperator
         """
@@ -45,11 +45,12 @@ class pd_loaddata:
         """
         df.to_csv(path, encoding = 'utf_8_sig', index = None)
 
-    def show_line(num1, num2):
+    def pd_show(num1, num2):
         """
         nrow, ncol
         """
         pd.set_option("display.max_rows", num1, "display.max_columns", num2)
+    
  
 
 # import seaborn as sns
