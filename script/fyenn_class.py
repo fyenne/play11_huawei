@@ -18,19 +18,27 @@ class pd_loaddata:
         """
         load data with \001 type seperator
         """
-        return pd.read_csv('./' + path, sep = '\001').dropna(axis=1, how = 'all')
+        return pd.read_csv(path, sep = '\001').dropna(axis=1, how = 'all')
         
     def pd_excel(path, num1):
         """
         doc name without format, sheet name
         """
         try:
-            pd.read_excel('./' + path + '.xlsx', sheet_name=num1).dropna(axis=1, how = 'all')\
-                .to_csv('./' + path + '.csv', encoding = 'utf_8_sig', index = None)
+            pd.read_csv(path + '.csv').dropna(axis=1, how = 'all')
+            print('csv_read')
         except:
-            pd.read_excel('./' + path + '.xls', sheet_name=num1).dropna(axis=1, how = 'all')\
-                .to_csv('./' + path + '.csv', encoding = 'utf_8_sig', index = None)
-        return pd.read_csv('./' + path + '.csv')
+            try:
+                pd.read_excel(path + '.xlsx', sheet_name=num1).dropna(axis=1, how = 'all')\
+                    .to_csv(path + '.csv', encoding = 'utf_8_sig', index = None)
+            except:
+                pd.read_excel(path + '.xls', sheet_name=num1).dropna(axis=1, how = 'all')\
+                    .to_csv(path + '.csv', encoding = 'utf_8_sig', index = None)
+            else:
+                print('excel_writed')
+
+        return pd.read_csv(path + '.csv')
+
 
     def bdp_col(df):
         """
@@ -56,3 +64,5 @@ class pd_loaddata:
 # import seaborn as sns
 # import plotly.express as px
 # import plotly.graph_objs as go 
+
+ 
