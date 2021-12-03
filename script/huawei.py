@@ -76,7 +76,7 @@ def run_etl(start_date, env):
 
     
 
-    print("==================================read_table================================")
+    print("==================================read_table%s================================"%env)
     print(huawei_output.head())
 
     def datetime_(coach, col):
@@ -130,14 +130,14 @@ def run_etl(start_date, env):
         'HUAWEDGNHS',
         'NEXPEDGIHS']
     # del dict 
-    dict = dict(zip(relist, oulist))
-    print(dict)
+    my_dict = dict(zip(relist, oulist))
+    print(my_dict)
 
 
 
     # %%
     def concat_(re, ou):
-        huawei_output[search_col(huawei_output, re)].shape
+        # huawei_output[search_col(huawei_output, re)].shape
         # n = 4 - huawei_output[search_col(huawei_output, re)].shape[1]
         # m = huawei_output[search_col(huawei_output, re)].shape[0]
         # print(m, n)
@@ -165,9 +165,9 @@ def run_etl(start_date, env):
         return data.reset_index(drop=True)
 
     df = pd.DataFrame()
-    for re in dict:
-        print(re, dict[re])
-        df = pd.concat([df, concat_(re, dict[re])], axis = 0)
+    for re in my_dict:
+        print(re, my_dict[re])
+        df = pd.concat([df, concat_(re, my_dict[re])], axis = 0)
 
     
     def cleanm(df):
@@ -186,12 +186,16 @@ def run_etl(start_date, env):
         except:
             pass
         df['update_date'] = pd.to_datetime(df['update_date']) + timedelta(days = 1)
+        df['update_date'] = df['update_date'].astype(str)
         df['addition_type'] = df['addition_type'].str.replace('^z', 'None')
         return df
     df = cleanm(df)
     df['inc_day'] = start_date
     print("===============================data_prepared================================")
-    print(df.head())
+    df[['receive', 'send', 'psn', 'transport_times', 'addition']] = df[
+        ['receive', 'send', 'psn', 'transport_times', 'addition']
+        ].astype(int)
+    print(df.info())
 
     # %%
     # df.query("year == '2021' & month == '05' & date == '29'")
@@ -204,6 +208,7 @@ def run_etl(start_date, env):
     # spark table as view, aka in to spark env. able to be selected or run by spark sql in the following part.
     spark_df.createOrReplaceTempView("df")
     # 
+    print(env)
     print("==============================spark_df, env=%s!================================="%env)
     print(spark_df)
 
@@ -217,10 +222,13 @@ def run_etl(start_date, env):
         merge_table = 'tmp_' + merge_table
     else:
         pass
+    print('看一下merge_table from john')
+    print(merge_table)
     
     inc_df = spark.sql("""select * from df""")
     print("===============================merge_table--%s================================="%merge_table)
-    print(merge_table)
+    # merge_table = "tmp_dsc_dws.dws_dsc_huawei_operation_sum_df"
+    # print(merge_table)
     print('{note:=>50}'.format(note=merge_table) + '{note:=>50}'.format(note=''))
 
     spark.sql("""set spark.hadoop.hive.exec.dynamic.partition.mode=nonstrict""")
@@ -240,7 +248,6 @@ def main():
 
     args_parse = args.parse_args()
     start_date = args_parse.start_date[0]
-    
     env = args_parse.env[0]
  
     run_etl(start_date, env)
