@@ -7,7 +7,7 @@ import warnings
 
 from pandas.io.parsers import ParserBase
 warnings.filterwarnings("ignore")
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import argparse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import * 
@@ -16,18 +16,18 @@ spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 import sys
 
 # %%
-def local_():
-    from fyenn_class import  pd_loaddata, pd, np 
-    path = './data_down/'
-    os.listdir(path)
-    huawei_output = pd_loaddata.pd_sep001(path + 'huawei_output.csv')
-    rel = pd_loaddata.pd_excel(path + '入湖数据关系', 2)
-    rel = rel.drop(['部门', '站点'],axis = 1).drop_duplicates();rel
-    pass
+# def local_():
+#     from fyenn_class import  pd_loaddata, pd, np 
+#     path = './data_down/'
+#     os.listdir(path)
+#     huawei_output = pd_loaddata.pd_sep001(path + 'huawei_output.csv')
+#     rel = pd_loaddata.pd_excel(path + '入湖数据关系', 2)
+#     rel = rel.drop(['部门', '站点'],axis = 1).drop_duplicates();rel
+#     pass
 
 
 
-def run_etl(start_date, end_date ,env):
+def run_etl(start_date, env):
     print("python version here:", sys.version, '\t') 
     print("===================================sysVersion================================")
     print("list dir", os.listdir())
@@ -72,16 +72,13 @@ def run_etl(start_date, end_date ,env):
         ,appid
         ,entryid
     FROM ods_public.huawei_output
-    WHERE inc_day > '""" + start_date + "'" 
+    WHERE inc_day = '""" + start_date + "'" 
     
     print(sql)
     huawei_output = spark.sql(sql).select("*").toPandas()
 
-    sql2 = """
-    select 
-    入湖数据关系
     
-    """
+
     print("==================================read_table================================")
     print(huawei_output.head())
 
@@ -99,9 +96,11 @@ def run_etl(start_date, end_date ,env):
     huawei_output = datetime_(
         coach=huawei_output, col='update_date'
         ).drop(['createtime', 'updatetime'], axis = 1)
+
     """
     drop useless cols./
     """
+
     huawei_output = huawei_output.drop(
         ['id','appid','entryid'], axis = 1
         ).drop_duplicates().sort_values('update_date')
@@ -128,18 +127,23 @@ def run_etl(start_date, end_date ,env):
     """
     ou 和正则匹配
     """
-    relist = ['hon', 'origi', 'pearl', 'guiy', 't_', 'r4_', 'nanh', 'ansh']
-    oulist = list(rel['OU（成本中心）'].unique())
+    relist = ['hon', 'origi', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh']
+    oulist = ['HUAWEDHW4S',
+        'HONORDGHMS',
+        'HUAWEDHWTS',
+        'HUAWEDGTRD',
+        'HUAWEDGLSS',
+        'HUAWEDHW1S',
+        'HUAWEDGNHS',
+        'NEXPEDGIHS']
     # del dict 
     dict = dict(zip(relist, oulist))
     print(dict)
 
 
+
     # %%
     def concat_(re, ou):
-        """
-        分组concat all data.
-        """
         huawei_output[search_col(huawei_output, re)].shape
         # n = 4 - huawei_output[search_col(huawei_output, re)].shape[1]
         # m = huawei_output[search_col(huawei_output, re)].shape[0]
@@ -159,21 +163,42 @@ def run_etl(start_date, end_date ,env):
             data = data.rename({np.nan:'addition'}, axis = 1)
         except:
             pass
-
-        # ou 还有 站点名称 带入.
         data['ou'] = ou
-        data['station'] = pd.Series(huawei_output.columns).str.extract("(" + re + "[a-z]+)").dropna().iloc[0,0]
-        data['addition_type'] = pd.Series(tran_col).str.extract("(" + re + ".+)")[0][0]
-
+        data['station'] = pd.Series(huawei_output.columns)\
+            .str.extract("(" + re + "[a-z]+)").dropna().iloc[0,0]
+        data['addition_type'] = pd.Series(tran_col)\
+            .str.extract("(" + re + ".+)").fillna('z').sort_values(0).iloc[0,0]
+        
         return data.reset_index(drop=True)
 
     df = pd.DataFrame()
     for re in dict:
         print(re, dict[re])
         df = pd.concat([df, concat_(re, dict[re])], axis = 0)
-    df = df.fillna(0)
+
+    
+    def cleanm(df):
+        """
+        清楚每日填报重复, 时间日期drop, update_date 日期加一以匹配前端.
+        """
+        df = df.fillna(0).drop_duplicates()
+        df['flag_sum'] = df[['receive', 'send', 'psn']].sum(axis =1)
+        df = df.sort_values(['update_date', 'ou', 'flag_sum'], ascending=False).groupby(
+            [
+                'update_date', 'ou'
+            ]
+            ).first().reset_index()
+        try:
+            df = df.drop(['year', 'month', 'date', 'flag_sum'], axis = 1)
+        except:
+            pass
+        df['update_date'] = pd.to_datetime(df['update_date']) + timedelta(days = 1)
+        df['addition_type'] = df['addition_type'].str.replace('^z', 'None')
+        return df
+    df = cleanm(df)
+    df['inc_day'] = start_date
     print("===============================data_prepared================================")
-    print(df.columns)
+    print(df.head())
 
     # %%
     # df.query("year == '2021' & month == '05' & date == '29'")
@@ -197,13 +222,14 @@ def run_etl(start_date, end_date ,env):
     merge_table = " table name "
     if env == 'dev':
         merge_table = 'tmp_' + merge_table
+    else:
         pass
     
     inc_df = spark.sql("""select * from df""")
     print("===============================merge_table--%s================================="%merge_table)
     print(merge_table)
     print('{note:=>50}'.format(note=merge_table) + '{note:=>50}'.format(note=''))
-    
+
     spark.sql("""set spark.hadoop.hive.exec.dynamic.partition.mode=nonstrict""")
     # (table_name, df, pk_cols, order_cols, partition_cols=None):
     merge_data = MergeDFToTable(merge_table, inc_df, \
@@ -216,16 +242,15 @@ def main():
     args = argparse.ArgumentParser()
     args.add_argument("--start_date", help="start date for refresh data, format: yyyyMMdd"
                           , default=[(datetime.now()).strftime("%Y%m%d")], nargs="*")
-    args.add_argument("--end_date", help="start date for refresh data, format: yyyyMMdd"
-                          , default=[(datetime.now()).strftime("%Y%m%d")], nargs="*")
+
     args.add_argument("--env", help="dev environment or prod environment", default="dev", nargs="*")
 
     args_parse = args.parse_args()
     start_date = args_parse.start_date[0]
-    end_date = args_parse.end_date[0]
+    
     env = args_parse.env[0]
  
-    run_etl(start_date, end_date, env)
+    run_etl(start_date, env)
 
     
 if __name__ == '__main__':
