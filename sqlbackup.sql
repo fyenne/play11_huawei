@@ -86,3 +86,27 @@ SELECT  deleter
        ,updater
 FROM ods_public.huawei_daliy_operation
 WHERE inc_day > '20211127'
+
+
+
+
+
+CREATE EXTERNAL TABLE `tmp_dsc_dws.dws_dsc_huawei_operation_sum_df`(
+`update_date` string comment '',
+`ou` string comment '',
+`receive` int comment '',
+`send` int comment '',
+`psn` int comment '',
+`transport_times` int comment '',
+`station` string comment '',
+`addition_type` string comment '',
+`addition` int comment '')
+COMMENT 'dws_dsc_huawei_operation_sum_df'
+PARTITIONED BY (
+`inc_day` string COMMENT '日分区')
+ROW FORMAT SERDE
+'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
+STORED AS INPUTFORMAT
+'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
+OUTPUTFORMAT
+'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'

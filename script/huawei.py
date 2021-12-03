@@ -68,9 +68,6 @@ def run_etl(start_date, env):
         ,pre_receive
         ,pre_withdraw
         ,honor_transport_times
-        ,`_id`
-        ,appid
-        ,entryid
     FROM ods_public.huawei_output
     WHERE inc_day = '""" + start_date + "'" 
     
@@ -95,15 +92,11 @@ def run_etl(start_date, env):
 
     huawei_output = datetime_(
         coach=huawei_output, col='update_date'
-        ).drop(['createtime', 'updatetime'], axis = 1)
+        ).drop(['createtime', 'updatetime'], axis = 1).drop_duplicates().sort_values('update_date')
 
     """
     drop useless cols./
     """
-
-    huawei_output = huawei_output.drop(
-        ['id','appid','entryid'], axis = 1
-        ).drop_duplicates().sort_values('update_date')
     
     def search_col(df, str):
         """
@@ -219,7 +212,7 @@ def run_etl(start_date, env):
     """
    
 
-    merge_table = " table name "
+    merge_table = "dsc_dws.dws_dsc_huawei_operation_sum_df"
     if env == 'dev':
         merge_table = 'tmp_' + merge_table
     else:
@@ -233,7 +226,7 @@ def run_etl(start_date, env):
     spark.sql("""set spark.hadoop.hive.exec.dynamic.partition.mode=nonstrict""")
     # (table_name, df, pk_cols, order_cols, partition_cols=None):
     merge_data = MergeDFToTable(merge_table, inc_df, \
-        "worker_name, inc_day", "inc_day", partition_cols="inc_day")
+        "ou, update_date, inc_day", "inc_day", partition_cols="inc_day")
     merge_data.merge()
 
 
