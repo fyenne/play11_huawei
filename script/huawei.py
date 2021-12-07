@@ -128,7 +128,7 @@ def run_etl(start_date, env):
         'HUAWEDGLSS',
         'HUAWEDHW1S',
         'HUAWEDGNHS',
-        'NEXPEDGIHS']
+        'NEXPEDGWHS']
     # del dict 
     my_dict = dict(zip(relist, oulist))
     print(my_dict)
