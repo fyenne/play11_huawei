@@ -120,7 +120,7 @@ def run_etl(start_date, env):
     """
     ou 和正则匹配
     """
-    relist = ['hon', 'origi', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh']
+    relist = ['origi', 'hon', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh']
     oulist = ['HUAWEDHW4S',
         'HONORDGHMS',
         'HUAWEDHWTS',
