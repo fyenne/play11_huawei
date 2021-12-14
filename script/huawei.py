@@ -120,7 +120,7 @@ def run_etl(start_date, env):
     """
     ou 和正则匹配
     """
-    relist = ['origi', 'hon', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh']
+    relist = ['origi', 'hon', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh', 't4']
     oulist = ['HUAWEDHW4S',
         'HONORDGHMS',
         'HUAWEDHWTS',
@@ -128,10 +128,17 @@ def run_etl(start_date, env):
         'HUAWEDGLSS',
         'HUAWEDHW1S',
         'HUAWEDGNHS',
-        'NEXPEDGWHS']
+        'NEXPEDGWHS',
+        'TYCOTSDXXS',]
     # del dict 
     my_dict = dict(zip(relist, oulist))
     print(my_dict)
+    """
+    te 站点的modify, 将 te_origin 和 te_product 合并相加.
+    """
+    huawei_output['te_origin_receive'] = huawei_output['te_origin_receive'] + huawei_output['te_product_receive'] 
+    huawei_output['te_origin_send'] = huawei_output['te_origin_send'] + huawei_output['te_product_send'] 
+    huawei_output = huawei_output.drop(['te_product_send', 'te_product_receive'], axis = 1)
 
 
 
