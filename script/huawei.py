@@ -131,6 +131,7 @@ def run_etl(start_date, env):
         'NEXPEDGWHS',
         'TYCOTSDXXS',]
     # del dict 
+    # this is a test message
     my_dict = dict(zip(relist, oulist))
     print(my_dict)
     """
