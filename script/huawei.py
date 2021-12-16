@@ -120,7 +120,7 @@ def run_etl(start_date, env):
     """
     ou 和正则匹配
     """
-    relist = ['origi', 'hon', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh', 't4']
+    relist = ['origi', 'hon', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh', 'te\_']
     oulist = ['HUAWEDHW4S',
         'HONORDGHMS',
         'HUAWEDHWTS',
@@ -142,6 +142,7 @@ def run_etl(start_date, env):
     huawei_output = huawei_output.drop(['te_product_send', 'te_product_receive'], axis = 1)
 
 
+    print("===============================before_concat================================")
 
     # %%
     def concat_(re, ou):
