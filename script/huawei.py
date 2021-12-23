@@ -121,7 +121,8 @@ def run_etl(start_date, env):
     ou 和正则匹配
     """
     relist = ['origi', 'hon', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh', 'te\_']
-    oulist = ['HUAWEDHW4S',
+    oulist = [
+        'HUAWEDHW4S',
         'HONORDGHMS',
         'HUAWEDHWTS',
         'HUAWEDGTRD',
@@ -205,6 +206,7 @@ def run_etl(start_date, env):
         ['receive', 'send', 'psn', 'transport_times', 'addition']
         ].astype(int)
     print(df.info())
+    df = df.fillna(0)
 
     # %%
     # df.query("year == '2021' & month == '05' & date == '29'")
@@ -266,3 +268,5 @@ if __name__ == '__main__':
     main()
 
     
+
+ 
