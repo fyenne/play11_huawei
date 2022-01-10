@@ -10,8 +10,7 @@ warnings.filterwarnings("ignore")
 from datetime import date, datetime, timedelta
 import argparse
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import * 
-from MergeDataFrameToTable import MergeDFToTable
+from pyspark.sql.functions import *  
 spark = SparkSession.builder.enableHiveSupport().getOrCreate() 
 import sys
 
@@ -32,12 +31,12 @@ def run_etl(start_date, env):
     print("===================================sysVersion================================")
     print("list dir", os.listdir())
     
-        
+        #  creator
+        # ,updater
+        # ,deleter
+        # ,
     sql = """
-    SELECT creator
-        ,updater
-        ,deleter
-        ,createtime
+    SELECT createtime
         ,updatetime
         ,deletetime
         ,update_date
@@ -68,13 +67,17 @@ def run_etl(start_date, env):
         ,pre_receive
         ,pre_withdraw
         ,honor_transport_times
+        , row_number() over (partition by update_date order by updatetime desc) as rn
     FROM ods_public.huawei_output
-    WHERE inc_day = '""" + start_date + "'" 
+    WHERE 
+    update_date != '' 
+    and inc_day = '""" + start_date + "'" 
     
     print(sql)
     huawei_output = spark.sql(sql).select("*").toPandas()
-
-    
+    # 20220110
+    huawei_output = huawei_output[huawei_output['rn'].astype(int) == 1]
+    # 20220110
 
     print("==================================read_table%s================================"%env)
     print(huawei_output.head())
@@ -85,15 +88,16 @@ def run_etl(start_date, env):
         split and assign to 3 cols of year m d
         """
         coach[col] = coach[col].astype(str).str.slice(0,10)
-        coach = pd.concat([coach, pd.DataFrame(list(coach[col].str.split('-')))], axis =1)
-        coach = coach[coach[[0,1,2]].astype(int).sum(axis = 1) != 0]
+        # 20220110
+        coach = pd.concat([coach.reset_index(drop = True), pd.DataFrame(list(coach[col].str.split('-')))], axis =1) 
+        coach = coach[coach[[0,1,2]].fillna(0).astype(int).sum(axis = 1) != 0] # 年月日三列
         coach = coach.rename({0:'year', 1:'month', 2: 'date'}, axis=1)
         return coach
 
     huawei_output = datetime_(
         coach=huawei_output, col='update_date'
         ).drop(['createtime', 'updatetime'], axis = 1).drop_duplicates().sort_values('update_date')
-
+   
     """
     drop useless cols./
     """
@@ -201,12 +205,27 @@ def run_etl(start_date, env):
         return df
     df = cleanm(df)
     df['inc_day'] = start_date
-    print("===============================data_prepared================================")
+
+    print("===============================data_prepared%s================================"%start_date)
     df[['receive', 'send', 'psn', 'transport_times', 'addition']] = df[
         ['receive', 'send', 'psn', 'transport_times', 'addition']
         ].astype(int)
+
     print(df.info())
     df = df.fillna(0)
+    print(df.head())
+    df = df[[
+        'update_date',
+        'ou',
+        'receive',
+        'send',
+        'psn',
+        'transport_times',
+        'station',
+        'addition_type',
+        'addition',
+        'inc_day',
+        ]]
 
     # %%
     # df.query("year == '2021' & month == '05' & date == '29'")
@@ -234,19 +253,17 @@ def run_etl(start_date, env):
     else:
         pass
     print('看一下merge_table from john')
-    print(merge_table)
-    
-    inc_df = spark.sql("""select * from df""")
     print("===============================merge_table--%s================================="%merge_table)
-    # merge_table = "tmp_dsc_dws.dws_dsc_huawei_operation_sum_df"
-    # print(merge_table)
-    print('{note:=>50}'.format(note=merge_table) + '{note:=>50}'.format(note=''))
 
-    spark.sql("""set spark.hadoop.hive.exec.dynamic.partition.mode=nonstrict""")
-    # (table_name, df, pk_cols, order_cols, partition_cols=None):
-    merge_data = MergeDFToTable(merge_table, inc_df, \
-        "ou, update_date, inc_day", "inc_day", partition_cols="inc_day")
-    merge_data.merge()
+    sql = """insert overwrite table """ + merge_table +  """ select * from df"""
+    print(sql)
+    spark.sql(sql).show()
+
+    # spark.sql("""set spark.hadoop.hive.exec.dynamic.partition.mode=nonstrict""")
+    # # (table_name, df, pk_cols, order_cols, partition_cols=None):
+    # merge_data = MergeDFToTable(merge_table, inc_df, \
+    #     "ou, update_date, inc_day", "inc_day", partition_cols="inc_day")
+    # merge_data.merge()
 
 
 
@@ -255,7 +272,7 @@ def main():
     args.add_argument("--start_date", help="start date for refresh data, format: yyyyMMdd"
                           , default=[(datetime.now()).strftime("%Y%m%d")], nargs="*")
 
-    args.add_argument("--env", help="dev environment or prod environment", default="dev", nargs="*")
+    args.add_argument("--env", help="dev environment or prod environment", default=["dev"], nargs="*")
 
     args_parse = args.parse_args()
     start_date = args_parse.start_date[0]
