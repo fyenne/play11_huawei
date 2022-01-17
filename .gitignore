@@ -1,4 +1,5 @@
-/__pycache__/
 /data_down/
 /data_up/
+*.p 
 *.zip
+*.pyc
