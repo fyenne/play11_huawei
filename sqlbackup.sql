@@ -90,27 +90,28 @@ WHERE inc_day > '20211127'
 
 
 
+drop table dsc_dws.dws_dsc_huawei_operation_sum_df
 
-CREATE EXTERNAL TABLE `tmp_dsc_dws.dws_dsc_huawei_operation_sum_df`(
-`update_date` string comment '',
-`ou` string comment '',
-`receive` int comment '',
-`send` int comment '',
-`psn` int comment '',
-`transport_times` int comment '',
-`station` string comment '',
-`addition_type` string comment '',
-`addition` int comment '')
+CREATE TABLE `dsc_dws.dws_dsc_huawei_operation_sum_df`(
+`update_date` string COMMENT '更新日期',
+`ou` string COMMENT 'ou_code',
+`receive` int COMMENT '收货件数',
+`send` int COMMENT '发货件数',
+`psn` int COMMENT '贴标件数',
+`transport_times` int COMMENT '运输趟数',
+`station` string COMMENT '站点名称',
+`addition_type` string COMMENT '额外操作类型',
+`addition` int COMMENT '额外操作数量',
+`inbound_wh` double comment '相应动作总工作时长' ,
+`outbound_wh` double comment '相应动作总工作时长' ,
+`psn_wh` double comment '相应动作总工作时长' ,
+`add_wh` double comment '相应动作总工作时长' ,
+`inc_day` string COMMENT '更新日期'')
 COMMENT 'dws_dsc_huawei_operation_sum_df'
-PARTITIONED BY (
-`inc_day` string COMMENT '日分区')
 ROW FORMAT SERDE
 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
 STORED AS INPUTFORMAT
 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
 OUTPUTFORMAT
 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
-
-
-
  

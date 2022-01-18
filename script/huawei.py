@@ -44,9 +44,12 @@ def run_etl(start_date, env, regexp, ou_code):
         ,origin_receive
         ,origin_send
         ,origin_psn
-        ,honor_receive
-        ,honer_send
-        ,honor_psn
+        ,hongmei_receive
+        ,hongmei_send
+        ,hongmei_psn
+
+
+
         ,pearlriver_transport_times
         ,guiyang_transport_times
         ,t_product_receive
@@ -57,7 +60,7 @@ def run_etl(start_date, env, regexp, ou_code):
         ,r4_psn
         ,nanhua_receive
         ,nanhua_send
-        ,nanhau_psn
+        ,nanhua_psn
         ,anshi_receive
         ,anshi_send
         ,anshi_case
@@ -100,7 +103,7 @@ def run_etl(start_date, env, regexp, ou_code):
         ).drop(['createtime', 'updatetime'], axis = 1).drop_duplicates().sort_values('update_date')
    
     """
-    drop useless cols./
+    drop useless cols
     """
     
     def search_col(df, str):
