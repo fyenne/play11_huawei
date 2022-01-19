@@ -115,3 +115,17 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT
 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
  
+
+
+
+
+---
+
+/* abc */
+
+
+SELECT  *
+FROM 
+ods_public.huawei_opt_dept_mapping
+ 
+LEFT JOIN dsc_dim.dim_dsc_huawei_os_name_list_rel

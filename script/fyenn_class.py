@@ -20,7 +20,7 @@ class pd_loaddata:
         """
         return pd.read_csv(path, sep = '\001').dropna(axis=1, how = 'all')
         
-    def pd_excel(path, num1):
+    def pd_excel(path, num1 = 0):
         """
         doc name without format, sheet name
         """
