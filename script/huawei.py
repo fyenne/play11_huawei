@@ -30,16 +30,19 @@ def run_etl(start_date, env, regexp, ou_code):
     
     print("python version here:", sys.version, '\t') 
     print("===================================sysVersion================================")
-    print("list dir", os.listdir())
+    def printer(*args):
+        [print( '{note:~>25}'.format(note = i)) for i in args]
+
+    print("my parameters",  printer(start_date, env, regexp, ou_code))
     
         #  creator
         # ,updater
         # ,deleter
         # ,
     sql = """
-    SELECT createtime
-        ,updatetime
-        ,deletetime
+    SELECT create_time
+        ,update_time
+        ,delete_time
         ,update_date
         ,origin_receive
         ,origin_send
@@ -47,9 +50,9 @@ def run_etl(start_date, env, regexp, ou_code):
         ,hongmei_receive
         ,hongmei_send
         ,hongmei_psn
-
-
-
+        ,pingshan_receive
+        ,pingshan_send
+        ,pingshan_psn
         ,pearlriver_transport_times
         ,guiyang_transport_times
         ,t_product_receive
@@ -71,7 +74,7 @@ def run_etl(start_date, env, regexp, ou_code):
         ,pre_receive
         ,pre_withdraw
         ,honor_transport_times
-        , row_number() over (partition by update_date order by updatetime desc) as rn
+        , row_number() over (partition by update_date order by update_time desc) as rn
     FROM ods_public.huawei_output
     WHERE 
     update_date != '' 
@@ -100,7 +103,7 @@ def run_etl(start_date, env, regexp, ou_code):
 
     huawei_output = datetime_(
         coach=huawei_output, col='update_date'
-        ).drop(['createtime', 'updatetime'], axis = 1).drop_duplicates().sort_values('update_date')
+        ).drop(['create_time', 'update_time'], axis = 1).drop_duplicates().sort_values('update_date')
    
     """
     drop useless cols
@@ -130,14 +133,17 @@ def run_etl(start_date, env, regexp, ou_code):
     """
     # relist = [
     #     'origi', 
-    #     'hon', 
+    #     'hon',  # 20220119 to hongmei
     #     'pearl', 
     #     'guiy', 
     #     '^t\_', 
     #     'r4\_', 
     #     'nanh', 
     #     'ansh', 
-    #     'te\_']
+    #     'te\_',
+    #     'pingsha' # 20220119 add
+    #   
+    # ]
 
     # oulist = [
     #     'HUAWEDHW4S',
@@ -148,7 +154,9 @@ def run_etl(start_date, env, regexp, ou_code):
     #     'HUAWEDHW1S',
     #     'HUAWEDGNHS',
     #     'NEXPEDGWHS',
-    #     'TYCOTSDXXS',]
+    #     'TYCOTSDXXS',
+    #     'HONORSZIHS'  # 20220119 add
+    # ]
 
     relist = regexp
     oulist = ou_code
@@ -166,7 +174,7 @@ def run_etl(start_date, env, regexp, ou_code):
 
 
     print("===============================before_concat================================")
-
+    print(huawei_output.columns)
     # %%
     def concat_(re, ou):
         # huawei_output[search_col(huawei_output, re)].shape
@@ -300,7 +308,8 @@ def main():
         'r4\_', 
         'nanh', 
         'ansh', 
-        'te\_'], nargs="*")
+        'te\_',
+        'pingsha'], nargs="*")
 
     args.add_argument("--ou_code", help="dev environment or prod environment", default=[
         'HUAWEDHW4S',
@@ -311,7 +320,8 @@ def main():
         'HUAWEDHW1S',
         'HUAWEDGNHS',
         'NEXPEDGWHS',
-        'TYCOTSDXXS',], nargs="*")
+        'TYCOTSDXXS',
+        'HONORSZIHS'], nargs="*")
 
     args_parse = args.parse_args()
     start_date = args_parse.start_date[0]
