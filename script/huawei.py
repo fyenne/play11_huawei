@@ -30,10 +30,12 @@ def run_etl(start_date, env, regexp, ou_code):
     
     print("python version here:", sys.version, '\t') 
     print("===================================sysVersion================================")
-    def printer(*args):
-        [print( '{note:~>25}'.format(note = i)) for i in args]
-
-    print("my parameters",  printer(start_date, env, regexp, ou_code))
+    # def printer(*args):
+    #     [print( '{note:~>25}'.format(note = i)) for i in args]
+    regexp = regexp[0].split(',')
+    ou_code = ou_code[0].split(',')
+    print("my parameters",  print(start_date, env, regexp, ou_code))
+    print(dict(zip(regexp,ou_code)))
     
         #  creator
         # ,updater
@@ -75,7 +77,7 @@ def run_etl(start_date, env, regexp, ou_code):
         ,pre_withdraw
         ,honor_transport_times
         , row_number() over (partition by update_date order by update_time desc) as rn
-    FROM ods_public.huawei_output
+    FROM ods_public.ods_huawei_output
     WHERE 
     update_date != '' 
     and inc_day = '""" + start_date + "'" 
@@ -131,32 +133,32 @@ def run_etl(start_date, env, regexp, ou_code):
     """
     ou 和正则匹配
     """
-    # relist = [
-    #     'origi', 
-    #     'hon',  # 20220119 to hongmei
-    #     'pearl', 
-    #     'guiy', 
-    #     '^t\_', 
-    #     'r4\_', 
-    #     'nanh', 
-    #     'ansh', 
-    #     'te\_',
-    #     'pingsha' # 20220119 add
-    #   
-    # ]
+    relist = [
+        'origi', 
+        'hon',  # 20220119 to hongmei
+        'pearl', 
+        'guiy', 
+        '^t\_', 
+        'r4\_', 
+        'nanh', 
+        'ansh', 
+        'te\_',
+        'pingsha' # 20220119 add
+      
+    ]
 
-    # oulist = [
-    #     'HUAWEDHW4S',
-    #     'HONORDGHMS',
-    #     'HUAWEDHWTS',
-    #     'HUAWEDGTRD',
-    #     'HUAWEDGLSS',
-    #     'HUAWEDHW1S',
-    #     'HUAWEDGNHS',
-    #     'NEXPEDGWHS',
-    #     'TYCOTSDXXS',
-    #     'HONORSZIHS'  # 20220119 add
-    # ]
+    oulist = [
+        'HUAWEDHW4S',
+        'HONORDGHMS',
+        'HUAWEDHWTS',
+        'HUAWEDGTRD',
+        'HUAWEDGLSS',
+        'HUAWEDHW1S',
+        'HUAWEDGNHS',
+        'NEXPEDGWHS',
+        'TYCOTSDXXS',
+        'HONORSZIHS',  # 20220119 add
+    ]
 
     relist = regexp
     oulist = ou_code
@@ -165,6 +167,7 @@ def run_etl(start_date, env, regexp, ou_code):
     # this is a test message
     my_dict = dict(zip(relist, oulist))
     print(my_dict)
+
     """
     te 站点的modify, 将 te_origin 和 te_product 合并相加.
     """

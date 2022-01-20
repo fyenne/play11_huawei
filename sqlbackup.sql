@@ -106,7 +106,7 @@ CREATE TABLE `dsc_dws.dws_dsc_huawei_operation_sum_df`(
 `outbound_wh` double comment '相应动作总工作时长' ,
 `psn_wh` double comment '相应动作总工作时长' ,
 `add_wh` double comment '相应动作总工作时长' ,
-`inc_day` string COMMENT '更新日期'')
+`inc_day` string COMMENT '更新日期')
 COMMENT 'dws_dsc_huawei_operation_sum_df'
 ROW FORMAT SERDE
 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
@@ -121,11 +121,81 @@ OUTPUTFORMAT
 
 ---
 
-/* abc */
+/* huawei mapping */
 
-
-SELECT  *
-FROM 
-ods_public.huawei_opt_dept_mapping
  
-LEFT JOIN dsc_dim.dim_dsc_huawei_os_name_list_rel
+insert overwrite table  dsc_dim.dim_dsc_huawei_os_name_list_rel
+select
+  emp_no,
+  emp_name,
+  site_name,
+  cost_center,
+  dept,
+  emp_type,
+  mapping_no,
+  eff_index_name,
+  inc_day as update_date
+from
+  (
+    SELECT
+      a.emp_no,
+      a.emp_name,
+      a.site_name,
+      a.cost_center,
+      a.dept,
+      a.emp_type,
+      a.inc_day,
+      row_number() over(
+        partition by emp_no,
+        emp_name,
+        site_name,
+        cost_center
+      ) as rn1,
+      b.mapping_no,
+      b.eff_index_name,
+      b.rn as rn2
+    FROM
+      ods_public.ods_huawei_outsourcing_name_list a
+      left join (
+        SELECT
+          mapping_no,
+          site,
+          dept,
+          eff_index_name,
+          ou_code,
+          row_number() over(
+            partition by mapping_no,
+            site,
+            dept,
+            eff_index_name,
+            ou_code
+            order by
+              update_time desc
+          ) as rn
+        FROM
+          ods_public.ods_huawei_opt_dept_mapping
+        where
+          inc_day = '$[time(yyyyMMdd,-1d)]'
+      ) b on a.site_name = b.site
+      and a.cost_center = b.ou_code
+      and a.dept = b.dept
+    where
+      a.inc_day = '$[time(yyyyMMdd,-1d)]'
+  ) out1
+where
+  rn1 = 1
+  and rn2 = 1
+ 
+
+
+
+
+--- 工时
+
+ SELECT  emp_code
+       ,emp_name
+       ,working_hours
+       ,regexp_replace(regexp_replace(working_date,'\s\d+\:.+',''),'\-','') operation_day
+       ,cost_center
+FROM dsc_dwd.dwd_hr_dsc_working_hour_dtl_di
+WHERE inc_day = '$[time(yyyyMMdd,-1d)]'
