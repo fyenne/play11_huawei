@@ -192,10 +192,45 @@ where
 
 --- 工时
 
- SELECT  emp_code
-       ,emp_name
-       ,working_hours
-       ,regexp_replace(regexp_replace(working_date,'\s\d+\:.+',''),'\-','') operation_day
-       ,cost_center
-FROM dsc_dwd.dwd_hr_dsc_working_hour_dtl_di
-WHERE inc_day = '$[time(yyyyMMdd,-1d)]'
+ SELECT  a.*
+       ,b.working_hours
+       ,b.operation_day
+FROM dsc_dim.dim_dsc_huawei_os_name_list_rel a
+LEFT JOIN
+(
+	SELECT  emp_code
+	       ,emp_name
+	       ,working_hours
+	       ,regexp_replace( regexp_replace(working_date,'\s\d+\:.+',''),'\-','' ) operation_day
+	       ,cost_center
+	FROM dsc_dwd.dwd_hr_dsc_working_hour_dtl_di
+	WHERE inc_day = '$[time(yyyyMMdd,-1d)]'
+) b
+ON a.emp_no = b.emp_code AND a.cost_center = b.cost_center
+WHERE coalesce(operation_day, '') != '' 
+
+
+  
+
+
+
+g      eff_index_name
+269	发货人效——华为终端
+39	收货人效——华为终端
+19	收货人效——洪梅
+2	发货人效——坪山
+11	安世成品收货人效
+12	outbound-FG
+31	南华人效
+12	成品收货——T园区
+1	PSN人效——洪梅
+4	珠三角仓配人效
+29	安世成品发货人效
+30	成品发货——T园区
+14	outbound-RM
+1	收货人效——坪山
+93	发货人效——洪梅
+11	安世FCS人效
+5	华技人效
+2	PSN人效——坪山
+9	PSN人效——华为终端

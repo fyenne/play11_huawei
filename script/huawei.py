@@ -26,7 +26,7 @@ import sys
 
 
 
-def run_etl(start_date, env, regexp, ou_code):
+def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     
     print("python version here:", sys.version, '\t') 
     print("===================================sysVersion================================")
@@ -34,7 +34,7 @@ def run_etl(start_date, env, regexp, ou_code):
     #     [print( '{note:~>25}'.format(note = i)) for i in args]
     regexp = regexp[0].split(',')
     ou_code = ou_code[0].split(',')
-    print("my parameters",  print(start_date, env, regexp, ou_code))
+    print("my parameters",  print(start_date, env, regexp, ou_code,work_hour_date_range))
     print(dict(zip(regexp,ou_code)))
     
         #  creator
@@ -80,10 +80,20 @@ def run_etl(start_date, env, regexp, ou_code):
     FROM ods_public.ods_huawei_output
     WHERE 
     update_date != '' 
-    and inc_day = '""" + start_date + "'" 
+    and inc_day >= '""" + start_date + "'" 
+
+    sql2 = """
+    select  
+        *
+        from
+        dsc_dwd.dwd_dsc_huawei_working_hour_dtl_di
+        where
+        inc_day >= '""" + work_hour_date_range + """'"""
     
     print(sql)
     huawei_output = spark.sql(sql).select("*").toPandas()
+
+
     # 20220110
     huawei_output = huawei_output[huawei_output['rn'].astype(int) == 1]
     # 20220110
@@ -299,7 +309,7 @@ def run_etl(start_date, env, regexp, ou_code):
 def main():
     args = argparse.ArgumentParser()
     args.add_argument("--start_date", help="start date for refresh data, format: yyyyMMdd"
-                          , default=[(datetime.now()).strftime("%Y%m%d")], nargs="*")
+                          , default=[(datetime.now() + timedelta(days=-1)).strftime('%Y%m%d')], nargs="*")
     args.add_argument("--env", help="dev environment or prod environment", default=["dev"], nargs="*")
 
     args.add_argument("--regexp", help="regexp in dictionary", default=[
@@ -325,6 +335,11 @@ def main():
         'NEXPEDGWHS',
         'TYCOTSDXXS',
         'HONORSZIHS'], nargs="*")
+    args.add_argument("--work_hour_date_range", help="date range u want to refresh in format of yyyyMMdd", default=[(datetime.now() + timedelta(days=-1)).strftime('%Y%m%d')], nargs="*")
+
+
+
+        
 
     args_parse = args.parse_args()
     start_date = args_parse.start_date[0]
@@ -332,8 +347,9 @@ def main():
 
     regexp = args_parse.regexp
     ou_code = args_parse.ou_code
- 
-    run_etl(start_date, env, regexp, ou_code)
+    work_hour_date_range = args_parse.work_hour_date_range[0]
+    
+    run_etl(start_date, env, regexp, ou_code, work_hour_date_range)
 
     
 if __name__ == '__main__':
