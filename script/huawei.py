@@ -82,13 +82,13 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     update_date != '' 
     and inc_day >= '""" + start_date + "'" 
 
-    sql2 = """
-    select  
-        *
-        from
-        dsc_dwd.dwd_dsc_huawei_working_hour_dtl_di
-        where
-        inc_day >= '""" + work_hour_date_range + """'"""
+    # sql2 = """
+    # select  
+    #     *
+    #     from
+    #     dsc_dwd.dwd_dsc_huawei_working_hour_dtl_di
+    #     where
+    #     inc_day >= '""" + work_hour_date_range + """'"""
     
     print(sql)
     huawei_output = spark.sql(sql).select("*").toPandas()
@@ -143,32 +143,32 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     """
     ou 和正则匹配
     """
-    relist = [
-        'origi', 
-        'hon',  # 20220119 to hongmei
-        'pearl', 
-        'guiy', 
-        '^t\_', 
-        'r4\_', 
-        'nanh', 
-        'ansh', 
-        'te\_',
-        'pingsha' # 20220119 add
+    # relist = [
+    #     'origi', 
+    #     'hon',  # 20220119 to hongmei
+    #     'pearl', 
+    #     'guiy', 
+    #     '^t\_', 
+    #     'r4\_', 
+    #     'nanh', 
+    #     'ansh', 
+    #     'te\_',
+    #     'pingsha' # 20220119 add
       
-    ]
+    # ]
 
-    oulist = [
-        'HUAWEDHW4S',
-        'HONORDGHMS',
-        'HUAWEDHWTS',
-        'HUAWEDGTRD',
-        'HUAWEDGLSS',
-        'HUAWEDHW1S',
-        'HUAWEDGNHS',
-        'NEXPEDGWHS',
-        'TYCOTSDXXS',
-        'HONORSZIHS',  # 20220119 add
-    ]
+    # oulist = [
+    #     'HUAWEDHW4S',
+    #     'HONORDGHMS',
+    #     'HUAWEDHWTS',
+    #     'HUAWEDGTRD',
+    #     'HUAWEDGLSS',
+    #     'HUAWEDHW1S',
+    #     'HUAWEDGNHS',
+    #     'NEXPEDGWHS',
+    #     'TYCOTSDXXS',
+    #     'HONORSZIHS',  # 20220119 add
+    # ]
 
     relist = regexp
     oulist = ou_code
@@ -190,10 +190,9 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     print(huawei_output.columns)
     # %%
     def concat_(re, ou):
-        # huawei_output[search_col(huawei_output, re)].shape
-        # n = 4 - huawei_output[search_col(huawei_output, re)].shape[1]
-        # m = huawei_output[search_col(huawei_output, re)].shape[0]
-        # print(m, n)
+        """
+        h合并表格并且对额外列变换为addition
+        """
         data = pd.concat(
             [
                 huawei_output[search_col(huawei_output, re)], 

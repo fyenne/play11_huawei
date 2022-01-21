@@ -1,11 +1,10 @@
 # %%
 import pandas as pd 
 import numpy as np 
-import os
-import re
+import os 
 import warnings
+from functools import reduce
 
-from pandas.io.parsers import ParserBase
 warnings.filterwarnings("ignore")
 from datetime import date, datetime, timedelta
 import argparse
@@ -27,205 +26,112 @@ import sys
 
 
 def run_etl(start_date, env):
+    
     print("python version here:", sys.version, '\t') 
     print("===================================sysVersion================================")
-    print("list dir", os.listdir())
-    
-        #  creator
-        # ,updater
-        # ,deleter
-        # ,
+ 
+    print("my parameters",  print(env, start_date))
+ 
+  
     sql = """
-    SELECT createtime
-        ,updatetime
-        ,deletetime
-        ,update_date
-        ,origin_receive
-        ,origin_send
-        ,origin_psn
-        ,honor_receive
-        ,honer_send
-        ,honor_psn
-        ,pearlriver_transport_times
-        ,guiyang_transport_times
-        ,t_product_receive
-        ,t_product_clean
-        ,t_product_send
-        ,r4_receive
-        ,r4_send
-        ,r4_psn
-        ,nanhua_receive
-        ,nanhua_send
-        ,nanhau_psn
-        ,anshi_receive
-        ,anshi_send
-        ,anshi_case
-        ,te_origin_receive
-        ,te_origin_send
-        ,te_product_receive
-        ,te_product_send
-        ,pre_receive
-        ,pre_withdraw
-        ,honor_transport_times
-        , row_number() over (partition by update_date order by updatetime desc) as rn
-    FROM ods_public.huawei_output
-    WHERE 
-    update_date != '' 
-    and inc_day = '""" + start_date + "'" 
-    # 单日数据会进行多次填报 , partition 删除旧填报
+    select  
+        *
+        from
+        dsc_dwd.dwd_dsc_huawei_working_hour_dtl_di
+        where
+        inc_day >= '""" + start_date + """'"""
+    
     print(sql)
-    huawei_output = spark.sql(sql).select("*").toPandas()    
-    huawei_output = huawei_output[huawei_output['rn'].astype(int) == 1]
+    df2 = spark.sql(sql).select("*").toPandas()
+    # df2 = df2[df2['rn'].astype(int) == 1]
+    print(df2.info())
     # 20220110
+    df2['working_hours'] = df2['working_hours'].fillna(0).astype(float)
 
     print("==================================read_table%s================================"%env)
-    print(huawei_output.head())
-
-    def datetime_(coach, col):
-        """
-        detail time to date; 
-        split and assign to 3 cols of year m d
-        """
-        coach[col] = coach[col].astype(str).str.slice(0,10)
-        # 20220110
-        coach = pd.concat([coach.reset_index(drop = True), pd.DataFrame(list(coach[col].str.split('-')))], axis =1) 
-        coach = coach[coach[[0,1,2]].fillna(0).astype(int).sum(axis = 1) != 0] # 年月日三列
-        coach = coach.rename({0:'year', 1:'month', 2: 'date'}, axis=1)
-        return coach
-
-    huawei_output = datetime_(
-        coach=huawei_output, col='update_date'
-        ).drop(['createtime', 'updatetime'], axis = 1).drop_duplicates().sort_values('update_date')
-   
-    """
-    drop useless cols./
-    """
+    # %%
+    # from fyenn_class import  pd_loaddata, pd 
+    # df2 = pd_loaddata.pd_csv(path+'dwd_dsc_huawei_working_hour_dtl_di.csv')
+    # df2 = pd_loaddata.bdp_col(df2)
     
-    def search_col(df, str):
-        """
-        列名正则搜索.~
-        """
-        return list(pd.Series(df.columns)[pd.Series(df.columns).str.match(str)])
+    df3 = df2.groupby(['cost_center', 'mapping_no','update_date', 'site_name']).agg(
+        {'working_hours':['sum', 'mean'], 'emp_no' : ['nunique']} 
+    )
+    df3.columns = df3.columns.get_level_values(0)
+    df3 = df3.reset_index()
+    df3.columns = ['cost_center', 'mapping_no', 'update_date', 'site_name','total_working_hours',
+        'mean_working_hours', 'emp_no']
+    df3['mapping_no'] = df3['mapping_no'].str.replace('——', '-')
+    df3 = df3[df3['update_date'].apply(lambda x: len(x)) == 8]
 
-
-    # %%
-    # 识别异常列名
-    tran_col = list(pd.Series(huawei_output.columns)[
-        pd.Series(huawei_output.columns).str.contains(
-            '(receive|psn|send|transport_times|update_date|year|month|date|id)'
-            ) == False
-            ])
-    # clean , case, withdraw)
-
-    # %%
-    # re = 'pear'
-    # pd.Series(huawei_output.columns).str.extract("(" + re + "[a-z]+)").dropna()
-    """
-    ou 和正则匹配
-    """
-    relist = ['origi', 'hon', 'pearl', 'guiy', '^t\_', 'r4\_', 'nanh', 'ansh', 'te\_']
-    oulist = [
-        'HUAWEDHW4S',
-        'HONORDGHMS',
-        'HUAWEDHWTS',
-        'HUAWEDGTRD',
-        'HUAWEDGLSS',
-        'HUAWEDHW1S',
-        'HUAWEDGNHS',
-        'NEXPEDGWHS',
-        'TYCOTSDXXS',]
-    # del dict 
-    # this is a test message
-    my_dict = dict(zip(relist, oulist))
-    print(my_dict)
-    """
-    te 站点的modify, 将 te_origin 和 te_product 合并相加.
-    """
-    huawei_output['te_origin_receive'] = huawei_output['te_origin_receive'] + huawei_output['te_product_receive'] 
-    huawei_output['te_origin_send'] = huawei_output['te_origin_send'] + huawei_output['te_product_send'] 
-    huawei_output = huawei_output.drop(['te_product_send', 'te_product_receive'], axis = 1)
-
-
-    print("===============================before_concat================================")
-
-    # %%
-    def concat_(re, ou):
-        # huawei_output[search_col(huawei_output, re)].shape
-        # n = 4 - huawei_output[search_col(huawei_output, re)].shape[1]
-        # m = huawei_output[search_col(huawei_output, re)].shape[0]
-        # print(m, n)
-        data = pd.concat(
-            [
-                huawei_output[search_col(huawei_output, re)], 
-                # pd.DataFrame(np.zeros(shape=(m, n), dtype=int)),
-                huawei_output[['update_date', 'year', 'month', 'date']]
-            ]
-            , axis = 1).sort_values('update_date')
-        # print(data.shape)
-        data.columns = list(pd.Series(data.columns).str.extract(
-            '(receive|psn|send|transport_times|update_date|year|month|date)'
-            )[0])
-        try:
-            data = data.rename({np.nan:'addition'}, axis = 1)
-        except:
-            pass
-        data['ou'] = ou
-        data['station'] = pd.Series(huawei_output.columns)\
-            .str.extract("(" + re + "[a-z]+)").dropna().iloc[0,0]
-        data['addition_type'] = pd.Series(tran_col)\
-            .str.extract("(" + re + ".+)").fillna('z').sort_values(0).iloc[0,0]
-        
-        return data.reset_index(drop=True)
-
-    df = pd.DataFrame()
-    for re in my_dict:
-        print(re, my_dict[re])
-        df = pd.concat([df, concat_(re, my_dict[re])], axis = 0)
-
+    types = ['(PS)', '(.+收货)', '(.+发货)', '(.+趟)']
+    transla = ['PSN', 'received', 'sent', 'transport_times']
+  
+    dicts = dict(zip(types, transla))
+    df_out = list()
+    for i in ['(PS)', '(.+收货)', '(.+发货)', '(.+趟)']:
+        df_mid = df3[df3['mapping_no'].str.match(i)]
+        df_mid['mapping_no'] = pd.Series(df_mid['mapping_no'].unique()).str.replace(i + '.+', dicts[i])[0]
+        df_mid.columns = ['cost_center', 'mapping_no', 'update_date', 'site_name'] + [j + '_' +  df_mid['mapping_no'].str.extract("(" + dicts[i] + ")").iloc[0,0] for j in list(df_mid.columns)[-3:] ]
+        df_mid = df_mid.drop('mapping_no', axis = 1)
+        df_out.append(df_mid)
     
-    def cleanm(df):
-        """
-        清楚每日填报重复, 时间日期drop, update_date 日期加一以匹配前端.
-        """
-        df = df.fillna(0).drop_duplicates()
-        df['flag_sum'] = df[['receive', 'send', 'psn']].sum(axis =1)
-        df = df.sort_values(['update_date', 'ou', 'flag_sum'], ascending=False).groupby(
-            [
-                'update_date', 'ou'
-            ]
-            ).first().reset_index()
-        try:
-            df = df.drop(['year', 'month', 'date', 'flag_sum'], axis = 1)
-        except:
-            pass
-        df['update_date'] = pd.to_datetime(df['update_date']) + timedelta(days = 1)
-        df['update_date'] = df['update_date'].astype(str)
-        df['addition_type'] = df['addition_type'].str.replace('^z', 'None')
-        return df
-    df = cleanm(df)
-    df['inc_day'] = start_date
+    data_frames = df_out
+    df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['cost_center', 'update_date', 'site_name'],
+                                                how='outer'), data_frames)
 
-    print("===============================data_prepared%s================================"%start_date)
-    df[['receive', 'send', 'psn', 'transport_times', 'addition']] = df[
-        ['receive', 'send', 'psn', 'transport_times', 'addition']
-        ].astype(int)
+    # %%
 
-    print(df.info())
-    df = df.fillna(0)
-    print(df.head())
-    df = df[[
+    df = df_merged[[
+        'cost_center',
+        'site_name',
         'update_date',
-        'ou',
-        'receive',
-        'send',
-        'psn',
-        'transport_times',
-        'station',
-        'addition_type',
-        'addition',
-        'inc_day',
+        'total_working_hours_PSN',
+        'mean_working_hours_PSN',
+        'emp_no_PSN',
+        'total_working_hours_received',
+        'mean_working_hours_received',
+        'emp_no_received',
+        'total_working_hours_sent',
+        'mean_working_hours_sent',
+        'emp_no_sent',
+        'total_working_hours_transport_times',
+        'mean_working_hours_transport_times',
+        'emp_no_transport_times'
         ]]
 
+
+    print("===============================data_prepared \s %s================================"%start_date)
+    df[[ 
+        'total_working_hours_PSN',
+        'mean_working_hours_PSN',
+        'emp_no_PSN',
+        'total_working_hours_received',
+        'mean_working_hours_received',
+        'emp_no_received',
+        'total_working_hours_sent',
+        'mean_working_hours_sent',
+        'emp_no_sent',
+        'total_working_hours_transport_times',
+        'mean_working_hours_transport_times',
+        'emp_no_transport_times'
+        ]] = df[[ 
+        'total_working_hours_PSN',
+        'mean_working_hours_PSN',
+        'emp_no_PSN',
+        'total_working_hours_received',
+        'mean_working_hours_received',
+        'emp_no_received',
+        'total_working_hours_sent',
+        'mean_working_hours_sent',
+        'emp_no_sent',
+        'total_working_hours_transport_times',
+        'mean_working_hours_transport_times',
+        'emp_no_transport_times'
+        ]].fillna(0).astype(float)
+
+    print(df.info())
+    print(df.head())
     # %%
     # df.query("year == '2021' & month == '05' & date == '29'")
     # list(pd.Series(huawei_output.columns).str.extract("(" + 'pearl' + "[a-z]+)").dropna()[0])[0]
@@ -246,7 +152,7 @@ def run_etl(start_date, env):
     """
    
 
-    merge_table = "dsc_dws.dws_dsc_huawei_operation_sum_df"
+    merge_table = "dsc_dws.dws_dsc_huawei_work_hour_sum_df"
     if env == 'dev':
         merge_table = 'tmp_' + merge_table
     else:
@@ -269,14 +175,17 @@ def run_etl(start_date, env):
 def main():
     args = argparse.ArgumentParser()
     args.add_argument("--start_date", help="start date for refresh data, format: yyyyMMdd"
-                          , default=[(datetime.now()).strftime("%Y%m%d")], nargs="*")
-
+                          , default=[(datetime.now() + timedelta(days=-1)).strftime('%Y%m%d')], nargs="*")
     args.add_argument("--env", help="dev environment or prod environment", default=["dev"], nargs="*")
+  
+
+        
 
     args_parse = args.parse_args()
     start_date = args_parse.start_date[0]
     env = args_parse.env[0]
  
+    
     run_etl(start_date, env)
 
     
