@@ -39,7 +39,8 @@ def run_etl(start_date, env):
         from
         dsc_dwd.dwd_dsc_huawei_working_hour_dtl_di
         where
-        inc_day >= '""" + start_date + """'"""
+        emp_type != '正式工'
+        and inc_day >= '""" + start_date + """'"""
     
     print(sql)
     df2 = spark.sql(sql).select("*").toPandas()

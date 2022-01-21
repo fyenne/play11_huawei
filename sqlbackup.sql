@@ -214,23 +214,42 @@ WHERE coalesce(operation_day, '') != ''
 
 
 
-g      eff_index_name
-269	发货人效——华为终端
-39	收货人效——华为终端
-19	收货人效——洪梅
-2	发货人效——坪山
-11	安世成品收货人效
-12	outbound-FG
-31	南华人效
-12	成品收货——T园区
-1	PSN人效——洪梅
-4	珠三角仓配人效
-29	安世成品发货人效
-30	成品发货——T园区
-14	outbound-RM
-1	收货人效——坪山
-93	发货人效——洪梅
-11	安世FCS人效
-5	华技人效
-2	PSN人效——坪山
-9	PSN人效——华为终端
+
+/* power bi , fin */
+ -- ads_dsc_huawei_work_efficiency_sum_df
+ 
+ insert overwrite table dm_dsc_ads.ads_dsc_huawei_work_efficiency_sum_df  
+select 
+a.update_date,
+a.ou,
+b.site_name,
+a.receive,
+a.send,
+a.psn,
+a.transport_times,
+a.addition_type,
+a.addition,
+b.total_working_hours_PSN,
+b.mean_working_hours_PSN,
+b.emp_no_PSN,
+b.total_working_hours_received,
+b.mean_working_hours_received,
+b.emp_no_received,
+b.total_working_hours_sent,
+b.mean_working_hours_sent,
+b.emp_no_sent,
+b.total_working_hours_transport_times,
+b.mean_working_hours_transport_times,
+b.emp_no_transport_times ,
+a.receive / b.total_working_hours_received as receive_eff,
+a.send / b.total_working_hours_sent as send_eff,
+a.psn / b.total_working_hours_PSN as psn_eff,
+a.transport_times / b.total_working_hours_transport_times as trans_eff
+
+from dsc_dws.dws_dsc_huawei_operation_sum_df as a
+left join dsc_dws.dws_dsc_huawei_work_hour_sum_df as b
+on 
+regexp_replace(a.update_date, '\-', '') = b.update_date
+and
+a.ou = b.cost_center 
+  
