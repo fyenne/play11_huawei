@@ -158,16 +158,16 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     # ]
 
     # oulist = [
-    #     'HUAWEDHW4S',
-    #     'HONORDGHMS',
-    #     'HUAWEDHWTS',
-    #     'HUAWEDGTRD',
-    #     'HUAWEDGLSS',
-    #     'HUAWEDHW1S',
-    #     'HUAWEDGNHS',
-    #     'NEXPEDGWHS',
-    #     'TYCOTSDXXS',
-    #     'HONORSZIHS',  # 20220119 add
+        # 'HUAWEDHW4S',
+        # 'HONORDGHMS',
+        # 'HUAWEDHWTS',
+        # 'HUAWEDGTRD',
+        # 'HUAWEDGLSS',
+        # 'HUAWEDHW1S',
+        # 'HUAWEDGNHS',
+        # 'NEXPEDGWHS',
+        # 'TYCOTSDXXS',
+        # 'HONORSZIHS',  # 20220119 add
     # ]
 
     relist = regexp
