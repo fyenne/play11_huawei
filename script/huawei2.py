@@ -39,9 +39,9 @@ def run_etl(start_date, env):
         from
         dsc_dwd.dwd_dsc_huawei_working_hour_dtl_di
         where
-        emp_type != '正式工'
-        and inc_day >= '""" + start_date + """'"""
-    
+        emp_type != '正式工' """
+
+        # and inc_day <= '""" + start_date + """'    不要日期筛选了, 现在全量,.
     print(sql)
     df2 = spark.sql(sql).select("*").toPandas()
     # df2 = df2[df2['rn'].astype(int) == 1]
