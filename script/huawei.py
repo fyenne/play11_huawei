@@ -238,7 +238,7 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
         except:
             pass
         df['update_date'] = pd.to_datetime(df['update_date']) + timedelta(days = 1)
-        df['update_date'] = df['update_date'].astype(str)
+        df['update_date'] = df['update_date'].astype(str).str.replace('\-', '') # 统一格式 20220125
         df['addition_type'] = df['addition_type'].str.replace('^z', 'None')
         return df
     df = cleanm(df)
