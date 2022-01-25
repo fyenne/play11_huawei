@@ -48,6 +48,8 @@ def run_etl(start_date, env):
     print(df2.info())
     # 20220110
     df2['working_hours'] = df2['working_hours'].fillna(0).astype(float)
+    df2['site_name'] = df2['site_name'].str.replace('嘉达|C9原材料', '华为原材料')
+
 
     print("==================================read_table%s================================"%env)
     # %%
@@ -73,7 +75,8 @@ def run_etl(start_date, env):
     for i in ['(PS)', '(.+收货)', '(.+发货)', '(.+趟)']:
         df_mid = df3[df3['mapping_no'].str.match(i)]
         df_mid['mapping_no'] = pd.Series(df_mid['mapping_no'].unique()).str.replace(i + '.+', dicts[i])[0]
-        df_mid.columns = ['cost_center', 'mapping_no', 'update_date', 'site_name'] + [j + '_' +  df_mid['mapping_no'].str.extract("(" + dicts[i] + ")").iloc[0,0] for j in list(df_mid.columns)[-3:] ]
+        df_mid.columns = ['cost_center', 'mapping_no', 'update_date', 'site_name'] \
+            + [j + '_' +  df_mid['mapping_no'].str.extract("(" + dicts[i] + ")").iloc[0,0] for j in list(df_mid.columns)[-3:] ]
         df_mid = df_mid.drop('mapping_no', axis = 1)
         df_out.append(df_mid)
     
