@@ -49,8 +49,12 @@ def run_etl(start_date, env):
     # 20220110
     df2['working_hours'] = df2['working_hours'].fillna(0).astype(float)
     df2['site_name'] = df2['site_name'].str.replace('嘉达|C9原材料', '华为原材料')
-
-
+    df2['site_name'] = df2['site_name'].str.replace('洪梅', '荣耀洪梅')
+    df2['site_name'] = df2['site_name'].str.replace('坪山', '荣耀坪山')
+    df2['mapping_no'] = df2['mapping_no'].str.replace('TE.+', 'TE')
+    # df2['mapping_no'] = df2['mapping_no'].str.replace('安世.+发货.+', '安世发货')
+    df2['mapping_no'] = df2['mapping_no'].str.replace('安世 FCS发货箱数', '安世 addition')
+ 
     print("==================================read_table%s================================"%env)
     # %%
     # from fyenn_class import  pd_loaddata, pd 
@@ -67,12 +71,12 @@ def run_etl(start_date, env):
     df3['mapping_no'] = df3['mapping_no'].str.replace('——', '-')
     df3 = df3[df3['update_date'].apply(lambda x: len(x)) == 8]
 
-    types = ['(PS)', '(.+收货)', '(.+发货)', '(.+趟)']
-    transla = ['PSN', 'received', 'sent', 'transport_times']
+    types = ['(PS)', '(.+收货)', '(.+发货)', '(.+趟)', '(.+addition)']
+    transla = ['PSN', 'received', 'sent', 'transport_times', 'addition']
   
     dicts = dict(zip(types, transla))
     df_out = list()
-    for i in ['(PS)', '(.+收货)', '(.+发货)', '(.+趟)']:
+    for i in ['(PS)', '(.+收货)', '(.+发货)', '(.+趟)', '(.+addition)']:
         df_mid = df3[df3['mapping_no'].str.match(i)]
         df_mid['mapping_no'] = pd.Series(df_mid['mapping_no'].unique()).str.replace(i + '.+', dicts[i])[0]
         df_mid.columns = ['cost_center', 'mapping_no', 'update_date', 'site_name'] \
@@ -101,11 +105,13 @@ def run_etl(start_date, env):
         'emp_no_sent',
         'total_working_hours_transport_times',
         'mean_working_hours_transport_times',
-        'emp_no_transport_times'
+        'emp_no_transport_times',
+        'total_working_hours_addition',
+        'mean_working_hours_addition',
+        'emp_no_addition'
         ]]
-
-
-    print("===============================data_prepared \s %s================================"%start_date)
+ 
+    print("===============================data_prepared================================")
     df[[ 
         'total_working_hours_PSN',
         'mean_working_hours_PSN',
@@ -118,7 +124,10 @@ def run_etl(start_date, env):
         'emp_no_sent',
         'total_working_hours_transport_times',
         'mean_working_hours_transport_times',
-        'emp_no_transport_times'
+        'emp_no_transport_times',
+        'total_working_hours_addition',
+        'mean_working_hours_addition',
+        'emp_no_addition'
         ]] = df[[ 
         'total_working_hours_PSN',
         'mean_working_hours_PSN',
@@ -131,7 +140,10 @@ def run_etl(start_date, env):
         'emp_no_sent',
         'total_working_hours_transport_times',
         'mean_working_hours_transport_times',
-        'emp_no_transport_times'
+        'emp_no_transport_times',
+        'total_working_hours_addition',
+        'mean_working_hours_addition',
+        'emp_no_addition'
         ]].fillna(0).astype(float)
 
     print(df.info())
@@ -150,6 +162,11 @@ def run_etl(start_date, env):
     print(env)
     print("==============================spark_df, env=%s!================================="%env)
     print(spark_df)
+    spark.sql("""select site_name, cost_center,update_date, count(0) jj
+                from
+                dsc_dws.dws_dsc_huawei_work_hour_sum_df
+        group by  cost_center,update_date,site_name
+        having count(0) > 1""").show(n=12)
 
     """
     merge table preparation:
@@ -161,7 +178,6 @@ def run_etl(start_date, env):
         merge_table = 'tmp_' + merge_table
     else:
         pass
-    print('看一下merge_table from john')
     print("===============================merge_table--%s================================="%merge_table)
 
     sql = """insert overwrite table """ + merge_table +  """ select * from df"""

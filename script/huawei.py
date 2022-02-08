@@ -96,6 +96,7 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
 
     # 20220110
     huawei_output = huawei_output[huawei_output['rn'].astype(int) == 1]
+    
     # 20220110
 
     print("==================================read_table%s================================"%env)
@@ -181,8 +182,76 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     """
     te 站点的modify, 将 te_origin 和 te_product 合并相加.
     """
-    huawei_output['te_origin_receive'] = huawei_output['te_origin_receive'] + huawei_output['te_product_receive'] 
-    huawei_output['te_origin_send'] = huawei_output['te_origin_send'] + huawei_output['te_product_send'] 
+    huawei_output[[
+        'origin_receive'
+        ,'origin_send'
+        ,'origin_psn'
+        ,'hongmei_receive'
+        ,'hongmei_send'
+        ,'hongmei_psn'
+        ,'pingshan_receive'
+        ,'pingshan_send'
+        ,'pingshan_psn'
+        ,'pearlriver_transport_times'
+        ,'guiyang_transport_times'
+        ,'t_product_receive'
+        ,'t_product_clean'
+        ,'t_product_send'
+        ,'r4_receive'
+        ,'r4_send'
+        ,'r4_psn'
+        ,'nanhua_receive'
+        ,'nanhua_send'
+        ,'nanhua_psn'
+        ,'anshi_receive'
+        ,'anshi_send'
+        ,'anshi_case'
+        ,'te_origin_receive'
+        ,'te_origin_send'
+        ,'te_product_receive'
+        ,'te_product_send']] == huawei_output[[
+            'origin_receive'
+            ,'origin_send'
+            ,'origin_psn'
+            ,'hongmei_receive'
+            ,'hongmei_send'
+            ,'hongmei_psn'
+            ,'pingshan_receive'
+            ,'pingshan_send'
+            ,'pingshan_psn'
+            ,'pearlriver_transport_times'
+            ,'guiyang_transport_times'
+            ,'t_product_receive'
+            ,'t_product_clean'
+            ,'t_product_send'
+            ,'r4_receive'
+            ,'r4_send'
+            ,'r4_psn'
+            ,'nanhua_receive'
+            ,'nanhua_send'
+            ,'nanhua_psn'
+            ,'anshi_receive'
+            ,'anshi_send'
+            ,'anshi_case'
+            ,'te_origin_receive'
+            ,'te_origin_send'
+            ,'te_product_receive'
+            ,'te_product_send']].fillna('0').astype(float)
+    print("===============================debug_print================================")
+    # huawei_output['te_origin_receive'] = huawei_output['te_origin_receive'].astype(int)
+    # huawei_output['te_product_receive'] = huawei_output['te_product_receive'].astype(int)
+    # huawei_output['te_origin_send'] =  huawei_output['te_origin_send'].astype(int)
+    # huawei_output['te_product_send'] =  huawei_output['te_product_send'] .astype(int)
+
+
+    # huawei_output['te_origin_receive'] = huawei_output['te_origin_receive'] + huawei_output['te_product_receive'] 
+    # huawei_output['te_origin_send'] = huawei_output['te_origin_send'] + huawei_output['te_product_send'] 
+    huawei_output['te_origin_receive'] = huawei_output[['te_origin_receive', 'te_product_receive']].fillna(0).astype(int).sum(axis = 1)
+    huawei_output['te_origin_send'] = huawei_output[['te_origin_send', 'te_product_send']].fillna(0).astype(int).sum(axis = 1)
+    
+    print(huawei_output['te_origin_receive'].dtype)
+
+    print(huawei_output.query("update_date == '2022-01-01'")[['te_origin_receive','te_origin_send'] ])
     huawei_output = huawei_output.drop(['te_product_send', 'te_product_receive'], axis = 1)
 
 
@@ -264,6 +333,7 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
         'addition',
         'inc_day',
         ]]
+        
 
     # %%
     # df.query("year == '2021' & month == '05' & date == '29'")
