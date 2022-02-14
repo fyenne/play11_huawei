@@ -253,3 +253,7 @@ regexp_replace(a.update_date, '\-', '') = b.update_date
 and
 a.ou = b.cost_center 
   
+
+
+
+  gerry.huang@sf-dsc.com	HUAWEDHW4S	HONORDGHMS	HUAWEDHWTS	HUAWEDGTRD	HUAWEDGLSS	HUAWEDHW1S	HUAWEDGNHS	NEXPEDGWHS	TYCOTSDXXS	HONORSZIHS
