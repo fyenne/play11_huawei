@@ -79,8 +79,8 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
         , row_number() over (partition by update_date order by update_time desc) as rn
     FROM ods_public.ods_huawei_output
     WHERE 
-    update_date != '' 
-    and inc_day >= '""" + start_date + "'" 
+    update_date != '' """
+    # and inc_day >= '""" + start_date + "'" 
 
     # sql2 = """
     # select  
@@ -144,32 +144,33 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     """
     ou 和正则匹配
     """
-    # relist = [
-    #     'origi', 
-    #     'hon',  # 20220119 to hongmei
-    #     'pearl', 
-    #     'guiy', 
-    #     '^t\_', 
-    #     'r4\_', 
-    #     'nanh', 
-    #     'ansh', 
-    #     'te\_',
-    #     'pingsha' # 20220119 add
+    
+    relist = [
+        'origi', 
+        'hon',  # 20220119 to hongmei
+        'pearl', 
+        'guiy', 
+        '^t\_', 
+        'r4\_', 
+        'nanh', 
+        'ansh', 
+        'te\_',
+        'pingsha' # 20220119 add
       
-    # ]
+    ] # origi,hon,pearl,guiy,^t\_,r4\_,nanh,ansh,te\_,pingsha
 
-    # oulist = [
-        # 'HUAWEDHW4S',
-        # 'HONORDGHMS',
-        # 'HUAWEDHWTS',
-        # 'HUAWEDGTRD',
-        # 'HUAWEDGLSS',
-        # 'HUAWEDHW1S',
-        # 'HUAWEDGNHS',
-        # 'NEXPEDGWHS',
-        # 'TYCOTSDXXS',
-        # 'HONORSZIHS',  # 20220119 add
-    # ]
+    oulist = [
+        'HUAWEDHW4S',
+        'HONORDGHMS',
+        'HUAWEDHWTS',
+        'HUAWEDGTRD',
+        'HUAWEDGLSS',
+        'HUAWEDHW1S',
+        'HUAWEDGNHS',
+        'NEXPEDGWHS',
+        'TYCOTSDXXS',
+        'HONORSZIHS',  # 20220119 add
+    ] # HUAWEDHW4S,HONORDGHMS,HUAWEDHWTS,HUAWEDGTRD,HUAWEDGLSS,HUAWEDHW1S,HUAWEDGNHS,NEXPEDGWHS,TYCOTSDXXS,HONORSZIHS
 
     relist = regexp
     oulist = ou_code
@@ -243,13 +244,21 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     # huawei_output['te_origin_send'] =  huawei_output['te_origin_send'].astype(int)
     # huawei_output['te_product_send'] =  huawei_output['te_product_send'] .astype(int)
 
-
-    # huawei_output['te_origin_receive'] = huawei_output['te_origin_receive'] + huawei_output['te_product_receive'] 
-    # huawei_output['te_origin_send'] = huawei_output['te_origin_send'] + huawei_output['te_product_send'] 
     huawei_output['te_origin_receive'] = huawei_output[['te_origin_receive', 'te_product_receive']].fillna(0).astype(int).sum(axis = 1)
     huawei_output['te_origin_send'] = huawei_output[['te_origin_send', 'te_product_send']].fillna(0).astype(int).sum(axis = 1)
     
-    print(huawei_output['te_origin_receive'].dtype)
+    # 2022.02.15 r4(华技) 和 南华合并.
+    
+    huawei_output21 = huawei_output[huawei_output['update_date'] < '2022-01-01']
+    huawei_output22 = huawei_output[huawei_output['update_date'] >= '2022-01-01']
+
+    huawei_output22['r4_receive'] = huawei_output22[['r4_receive', 'nanhua_receive']].fillna(0).astype(int).sum(axis = 1)
+    huawei_output22['r4_send'] = huawei_output22[['r4_send', 'nanhua_send']].fillna(0).astype(int).sum(axis = 1)
+    huawei_output22['r4_psn'] = huawei_output22[['r4_psn', 'nanhua_psn']].fillna(0).astype(int).sum(axis = 1)
+    
+    huawei_output22[['r4_receive', 'r4_send', 'r4_psn']] = 0
+    huawei_output = pd.concat([huawei_output21,huawei_output22], axis = 0)
+    # print(huawei_output['te_origin_receive'].dtype)
 
     print(huawei_output.query("update_date == '2022-01-01'")[['te_origin_receive','te_origin_send'] ])
     huawei_output = huawei_output.drop(['te_product_send', 'te_product_receive'], axis = 1)
@@ -363,9 +372,9 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     print('看一下merge_table from john')
     print("===============================merge_table--%s================================="%merge_table)
 
-    sql = """insert overwrite table """ + merge_table +  """ select * from df"""
-    print(sql)
-    spark.sql(sql).show()
+    # sql = """insert overwrite table """ + merge_table +  """ select * from df"""
+    # print(sql)
+    # spark.sql(sql).show()
 
     # spark.sql("""set spark.hadoop.hive.exec.dynamic.partition.mode=nonstrict""")
     # # (table_name, df, pk_cols, order_cols, partition_cols=None):
