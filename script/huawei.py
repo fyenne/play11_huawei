@@ -4,7 +4,7 @@ import numpy as np
 import os
 import re
 import warnings
-
+from MergeDataFrameToTable import * 
 from pandas.io.parsers import ParserBase
 warnings.filterwarnings("ignore")
 from datetime import date, datetime, timedelta
@@ -237,15 +237,14 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
             ,'te_origin_receive'
             ,'te_origin_send'
             ,'te_product_receive'
-            ,'te_product_send']].fillna('0').astype(float)
-    print("===============================debug_print================================")
-    # huawei_output['te_origin_receive'] = huawei_output['te_origin_receive'].astype(int)
-    # huawei_output['te_product_receive'] = huawei_output['te_product_receive'].astype(int)
-    # huawei_output['te_origin_send'] =  huawei_output['te_origin_send'].astype(int)
-    # huawei_output['te_product_send'] =  huawei_output['te_product_send'] .astype(int)
+            ,'te_product_send']].fillna('0').astype(int)
+    print("===============================debug_print1================================")
+    print(huawei_output.info())
+    print("===============================debug_print2================================")
+    print(huawei_output.query("update_date == '2022-02-13'")[['r4_receive', 'nanhua_receive']].sum(axis = 1))
 
-    huawei_output['te_origin_receive'] = huawei_output[['te_origin_receive', 'te_product_receive']].fillna(0).astype(int).sum(axis = 1)
-    huawei_output['te_origin_send'] = huawei_output[['te_origin_send', 'te_product_send']].fillna(0).astype(int).sum(axis = 1)
+    # huawei_output['te_product_receive'] = huawei_output[['te_origin_receive', 'te_product_receive']].fillna(0).astype(int).sum(axis = 1)
+    # huawei_output['te_product_send'] = huawei_output[['te_origin_send', 'te_product_send']].fillna(0).astype(int).sum(axis = 1)
     
     # 2022.02.15 r4(华技) 和 南华合并.
     
@@ -256,12 +255,12 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     huawei_output22['r4_send'] = huawei_output22[['r4_send', 'nanhua_send']].fillna(0).astype(int).sum(axis = 1)
     huawei_output22['r4_psn'] = huawei_output22[['r4_psn', 'nanhua_psn']].fillna(0).astype(int).sum(axis = 1)
     
-    huawei_output22[['r4_receive', 'r4_send', 'r4_psn']] = 0
+    huawei_output22[['nanhua_receive', 'nanhua_send', 'nanhua_psn']] = 0
     huawei_output = pd.concat([huawei_output21,huawei_output22], axis = 0)
     # print(huawei_output['te_origin_receive'].dtype)
 
     print(huawei_output.query("update_date == '2022-01-01'")[['te_origin_receive','te_origin_send'] ])
-    huawei_output = huawei_output.drop(['te_product_send', 'te_product_receive'], axis = 1)
+    huawei_output = huawei_output.drop(['te_origin_send', 'te_origin_receive'], axis = 1)
 
 
     print("===============================before_concat================================")
@@ -320,7 +319,7 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
         df['addition_type'] = df['addition_type'].str.replace('^z', 'None')
         return df
     df = cleanm(df)
-    df['inc_day'] = start_date
+    df['inc_day'] = datetime.now().strftime('%Y%m%d')
 
     print("===============================data_prepared%s================================"%start_date)
     df[['receive', 'send', 'psn', 'transport_times', 'addition']] = df[
@@ -372,14 +371,13 @@ def run_etl(start_date, env, regexp, ou_code, work_hour_date_range):
     print('看一下merge_table from john')
     print("===============================merge_table--%s================================="%merge_table)
 
-    # sql = """insert overwrite table """ + merge_table +  """ select * from df"""
+    sql = """insert overwrite table """ + merge_table +  """ select * from df"""
     # print(sql)
-    # spark.sql(sql).show()
-
-    # spark.sql("""set spark.hadoop.hive.exec.dynamic.partition.mode=nonstrict""")
+    spark.sql(sql).show()
+    # inc_df = spark.sql("select * from df")
     # # (table_name, df, pk_cols, order_cols, partition_cols=None):
     # merge_data = MergeDFToTable(merge_table, inc_df, \
-    #     "ou, update_date, inc_day", "inc_day", partition_cols="inc_day")
+    #     "ou, update_date, inc_day", "update_date")
     # merge_data.merge()
 
 
