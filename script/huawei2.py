@@ -51,6 +51,7 @@ def run_etl(start_date, env):
     df2['site_name'] = df2['site_name'].str.replace('嘉达|C9原材料', '华为原材料')
     df2['site_name'] = df2['site_name'].str.replace('洪梅', '荣耀洪梅')
     df2['site_name'] = df2['site_name'].str.replace('坪山', '荣耀坪山')
+    df2['site_name'] = df2['site_name'].str.replace('蓝思预配', 'T园区')
     df2['mapping_no'] = df2['mapping_no'].str.replace('TE.+', 'TE')
     # df2['mapping_no'] = df2['mapping_no'].str.replace('安世.+发货.+', '安世发货')
     df2['mapping_no'] = df2['mapping_no'].str.replace('安世 FCS发货箱数', '安世 addition')
