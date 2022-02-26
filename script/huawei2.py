@@ -55,7 +55,11 @@ def run_etl(start_date, env):
     df2['mapping_no'] = df2['mapping_no'].str.replace('TE.+', 'TE')
     # df2['mapping_no'] = df2['mapping_no'].str.replace('安世.+发货.+', '安世发货')
     df2['mapping_no'] = df2['mapping_no'].str.replace('安世 FCS发货箱数', '安世 addition')
-    df2.loc[(df2['site_name'] == '南华') & (df2['cost_center'] == 'HUAWEDHW1S'), 'site_name'] = '华技'
+    df2.loc[(df2['site_name'] == '南华') & (df2['update_date'] >= '20220101'), 'site_name'] = '华技'
+    df2.loc[(df2['site_name'] == '华技') & (df2['update_date'] >= '20220101'), 'cost_center'] = 'HUAWEDHW1S'
+    df2.loc[(df2['site_name'] == '华技') & (df2['update_date'] >= '20220101'), 'mapping_no'] = 'R4 保税仓发货条数'
+    # df2.loc[(df2['site_name'] == '华技') & (df2['update_date'] > '20220101'), 'mapping_no'] = 'R4 保税仓发货条数'
+    
  
     print("==================================read_table%s================================"%env)
     # %%
